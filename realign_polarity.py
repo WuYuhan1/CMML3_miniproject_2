@@ -13,12 +13,14 @@ def realign_polarity(seg, Q, seg_cells, new_seg_cells, w1, w2, w3, w4):
             flow_vect = np.array([0, 0])  # Default to zero vector
             
             # Flow alignment component
-            if 1 <= seg <= 5 or 21 <= seg <= 25:
-                flow_vect = np.array([0, 1]) * np.sign(Q[seg])
-            elif 6 <= seg <= 15 or 26 <= seg <= 35:
-                flow_vect = np.array([1, 0]) * np.sign(Q[seg])
-            elif 16 <= seg <= 20 or 36 <= seg <= 40:
-                flow_vect = np.array([0, -1]) * np.sign(Q[seg])
+            #the cells should migrate against the direction of blood flow
+            #change the segment index
+            if 0 <= seg <= 4 or 20 <= seg <= 24:
+                flow_vect = np.array([0, 1]) * (-np.sign(Q[seg]))
+            elif 5 <= seg <= 14 or 25 <= seg <= 34:
+                flow_vect = np.array([1, 0]) * (-np.sign(Q[seg]))
+            elif 15 <= seg <= 19 or 35 <= seg <= 39:
+                flow_vect = np.array([0, -1]) * (-np.sign(Q[seg]))
             
             # Random walk alignment component
             rand_walk_vect = np.random.randn(2)

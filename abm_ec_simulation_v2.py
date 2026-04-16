@@ -5,12 +5,13 @@ from cell_migration import cell_migration
 from realign_polarity import realign_polarity
 from plot_network import plot_network
 from make_segments import make_segments
+import copy #the module for deepcopy
 
 # Set random seed for reproducibility
 np.random.seed(123456789)
 
 # Input parameters
-Nt = 40  # Number of time steps
+Nt =  100  # Number of time steps
 Pin = 4 * 98  # Inlet pressure (Pa)
 Pout = 1 * 98  # Outlet pressure (Pa)
 
@@ -20,7 +21,7 @@ Nseg = 40  # Number of segments
 num_cell = 10  # Initial number of cells per segment
 cell_size = 5e-6  # Size of each cell (m)
 
-branch_rule = 6  # Branching rule - new
+branch_rule = 5 # Branching rules: 1, 4, 5
 branch_alpha = 1.0  # Branching parameter
 
 # Polarization re-alignment weights
@@ -57,11 +58,15 @@ def compute_conductance(Nseg, Ncell, cell_size, mu, L):
     D = np.zeros(Nseg)
     G = np.zeros(Nseg)
     H = np.zeros(Nseg)
+    min_D = 1e-7 # Minimum diameter 
     for seg in range(Nseg):
         if Ncell[seg] >= 1:
             D[seg] = Ncell[seg] * cell_size / np.pi
+            if D[seg] < min_D:
+                D[seg] = min_D
+        
         else:
-            D[seg] = 0
+            D[seg] = min_D
         G[seg] = (np.pi * D[seg]**4) / (128 * mu * L[seg])
         if D[seg] != 0:
             H[seg] = (32 * mu) / (np.pi * D[seg]**3)
@@ -79,14 +84,17 @@ for t in range(Nt):
     print(f'Time step {t+1}/{Nt}')
     
     migrate = np.zeros(Nseg)
-    new_seg_cells = seg_cells.copy()
+    new_seg_cells = copy.deepcopy(seg_cells)#use deepcopy to not change the original seg_cells
     
     for seg in range(Nseg):
         seg_cells, new_seg_cells = realign_polarity(seg, Q, seg_cells, new_seg_cells, w1, w2, w3, w4)
         seg_cells, new_seg_cells = cell_migration(seg, seg_cells, new_seg_cells, migrate, Q, branch_rule, branch_alpha, tau)
     
-    seg_cells = new_seg_cells.copy()
+    seg_cells = new_seg_cells
     
+    for seg in range(Nseg):
+        Ncell[seg] = seg_cells[seg]['num']#update the segment cell number
+
     # Update conductance and shear stress
     D, G, H = compute_conductance(Nseg, Ncell, cell_size, mu, L)
     
